@@ -40,7 +40,7 @@ class VoteService : LifecycleService() {
         if (running) return
         running = true
         RunState.running = true
-        startForeground(Foreground.nextId(), Foreground.build(this, "Przygotowanieâ€¦"))
+        startForeground(Foreground.nextId(), Foreground.build(this, "Przygotowanie…"))
         job = lifecycleScope.launch { loop() }
     }
 
@@ -65,7 +65,7 @@ class VoteService : LifecycleService() {
         while (running && done < budget) {
             if (mail) sweep(cfg)
             val alias = repo.claimNext()
-            if (alias == null) { notify("SkoĹ„czyĹ‚y siÄ™ aliasy"); break }
+            if (alias == null) { notify("Skończyły się aliasy"); break }
 
             val out = runOne(alias)
             handle(alias, out)
@@ -76,15 +76,15 @@ class VoteService : LifecycleService() {
                     repo.log(alias.email, "mail", "potwierdzony")
                 } else {
                     repo.bumpConfirm(alias.id)
-                    repo.log(alias.email, "mail", "brak â€” zalegĹ‚oĹ›Ä‡")
+                    repo.log(alias.email, "mail", "brak — zaległość")
                 }
             }
 
             done++; sinceRotate++
-            tick("PostÄ™p", "$done/$budget")
+            tick("Postęp", "$done/$budget")
             if (prefs.rotateEvery > 0 && sinceRotate >= prefs.rotateEvery && done < budget) {
                 sinceRotate = 0
-                tick("Zmiana IPâ€¦")
+                tick("Zmiana IP…")
                 IpRotator.rotate(this)
                 delay(2000)
             }
@@ -146,7 +146,7 @@ class VoteService : LifecycleService() {
     }
 
     private suspend fun nextEvent(): Evt = suspendCancellableCoroutine { c ->
-        val j = lifecycleScope.launch { VoteBus.evts.collect { if (c.isActive) c.resume(it) { _, _, _ -> } } }
+        val j = lifecycleScope.launch { VoteBus.evts.collect { if (c.isActive) c.resume(it) } }
         c.invokeOnCancellation { j.cancel() }
     }
 
@@ -205,7 +205,7 @@ class VoteService : LifecycleService() {
 
     private suspend fun handle(a: AliasEntity, o: Outcome) = when (o) {
         Outcome.VOTED -> { repo.finish(a.id, AliasStatus.VOTED); repo.log(a.email, "vote", "ok") }
-        Outcome.SKIPPED -> { repo.finish(a.id, AliasStatus.SKIPPED, "juĹĽ gĹ‚osowaĹ‚"); repo.log(a.email, "vote", "skip") }
+        Outcome.SKIPPED -> { repo.finish(a.id, AliasStatus.SKIPPED, "już głosował"); repo.log(a.email, "vote", "skip") }
         Outcome.DEAD -> { repo.finish(a.id, AliasStatus.DEAD, "404"); repo.log(a.email, "vote", "dead") }
         Outcome.RATE -> { repo.finish(a.id, AliasStatus.RATE, "429"); repo.log(a.email, "vote", "429") }
         Outcome.FAILED -> {
@@ -223,7 +223,7 @@ class VoteService : LifecycleService() {
             Foreground.nextId(),
             NotificationCompat.Builder(this, OspApp.CH_ALERT)
                 .setSmallIcon(android.R.drawable.stat_notify_error)
-                .setContentTitle("OSP Ĺ»elazkĂłw").setContentText(t).setAutoCancel(true).build()
+                .setContentTitle("OSP Żelazków").setContentText(t).setAutoCancel(true).build()
         )
     }
 
