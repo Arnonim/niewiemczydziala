@@ -5,7 +5,7 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 
-private val Ctx.store by preferencesDataStore("osp_prefs")
+private val Context.store by preferencesDataStore("osp_prefs")
 
 data class Settings(
     val voteId: String = "",
