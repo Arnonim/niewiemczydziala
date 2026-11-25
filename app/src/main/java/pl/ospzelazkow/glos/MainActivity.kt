@@ -66,11 +66,11 @@ class MainActivity : ComponentActivity() {
         var running by remember { mutableStateOf(RunState.running) }
 
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-            Text("OSP Ĺ»elazkĂłw ${BuildConfig.VERSION_NAME}")
+            Text("OSP Żelazków ${BuildConfig.VERSION_NAME}")
             Text("pula: $total", style = MaterialTheme.typography.bodySmall)
 
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat("Potw.", conf); Stat("ZostaĹ‚o", left); Stat("429", rate); Stat("WygasĹ‚e", exp)
+                Stat("Potw.", conf); Stat("Zostało", left); Stat("429", rate); Stat("Wygasłe", exp)
             }
 
             Button(
@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
 
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { startActivity(Intent(ASettings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("DostÄ™pnoĹ›Ä‡") }
+                TextButton(onClick = { startActivity(Intent(ASettings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("Dostępność") }
                 TextButton(onClick = {
                     startActivity(Intent(ASettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
                 }) { Text("Bateria") }
@@ -100,7 +100,7 @@ class MainActivity : ComponentActivity() {
                 Text("  Potwierdzanie mailem")
             }
             Field("Login IMAP", s.mailUser) { v -> s = s.copy(mailUser = v); lifecycleScope.launch { Prefs.setMailUser(this@MainActivity, v) } }
-            Field("HasĹ‚o", s.mailPass) { v -> s = s.copy(mailPass = v); lifecycleScope.launch { Prefs.setMailPass(this@MainActivity, v) } }
+            Field("Hasło", s.mailPass) { v -> s = s.copy(mailPass = v); lifecycleScope.launch { Prefs.setMailPass(this@MainActivity, v) } }
             Field("Host IMAP", s.mailHost) { v -> s = s.copy(mailHost = v); lifecycleScope.launch { Prefs.setMailHost(this@MainActivity, v) } }
             OutlinedButton(onClick = {
                 lifecycleScope.launch {
@@ -117,13 +117,13 @@ class MainActivity : ComponentActivity() {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { save.launch("zaglosowane.txt") }) { Text("Eksport") }
-                OutlinedButton(onClick = { lifecycleScope.launch { repo.requeueFailed() } }) { Text("PowtĂłrz bĹ‚Ä™dy") }
+                OutlinedButton(onClick = { lifecycleScope.launch { repo.requeueFailed() } }) { Text("Powtórz błędy") }
                 OutlinedButton(onClick = { lifecycleScope.launch { repo.resetAll() } }) { Text("Reset") }
             }
 
             Spacer(Modifier.height(12.dp))
             logs.take(100).forEach {
-                Text("${it.email.substringBefore('@')} Â· ${it.result} ${it.note ?: ""}", style = MaterialTheme.typography.bodySmall)
+                Text("${it.email.substringBefore('@')} · ${it.result} ${it.note ?: ""}", style = MaterialTheme.typography.bodySmall)
             }
         }
     }
