@@ -10,20 +10,36 @@ jobs:
     env:
       KS: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Android SDK
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKM" ] || SDKM=$(command -v sdkmanager)
+          yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+          "$SDKM" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+
       - name: Build debug
         run: gradle assembleDebug --no-daemon
+
       - name: Keystore
         if: env.KS != ''
         run: echo "$KS" | base64 -d > ks.jks
+
       - name: Build release
         if: env.KS != ''
         run: gradle assembleRelease --no-daemon
+
       - name: Sign
         if: env.KS != ''
         run: |
@@ -34,6 +50,7 @@ jobs:
             --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
             --out osp-signed.apk \
             app/build/outputs/apk/release/app-release-unsigned.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: apk
