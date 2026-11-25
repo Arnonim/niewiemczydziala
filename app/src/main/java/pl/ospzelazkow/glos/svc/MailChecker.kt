@@ -34,9 +34,9 @@ object MailChecker {
             val f = s.getFolder("INBOX").apply { open(Folder.READ_ONLY) }
             val n = f.messageCount
             runCatching { f.close(false) }
-            "OK â€” INBOX: $n"
+            "OK — INBOX: $n"
         } catch (e: Exception) {
-            "BĹ‚Ä…d: ${e.message ?: e::class.java.simpleName}"
+            "Błąd: ${e.message ?: e::class.java.simpleName}"
         } finally { runCatching { s?.close() } }
     }
 
@@ -77,14 +77,13 @@ object MailChecker {
     private fun bodies(m: Message): Pair<String, String> {
         val t = StringBuilder(); val h = StringBuilder()
         fun walk(p: Part) {
-            if (p.isMimeMultipart) {
-                val mp = p.content as Multipart
-                for (i in 0 until mp.count) walk(mp.getBodyPart(i))
+            val c = runCatching { p.content }.getOrNull()
+            if (c is Multipart) {
+                for (i in 0 until c.count) walk(c.getBodyPart(i))
                 return
             }
-            val c = runCatching { p.content?.toString().orEmpty() }.getOrDefault("")
-            if (p.mimeType?.contains("text/html", true) == true) h.append(c)
-            else t.append(c)
+            val s = c?.toString().orEmpty()
+            if (p.contentType?.contains("text/html", true) == true) h.append(s) else t.append(s)
         }
         runCatching { walk(m) }
         return t.toString() to h.toString()
