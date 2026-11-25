@@ -22,7 +22,7 @@ object IpRotator {
     }
 
     private fun root(cmd: String): Boolean = runCatching {
-        ProcessBuilder("su", "-c", cmd).redirectErrorStream(true).start().waitFor()
+        ProcessBuilder("su", "-c", cmd).redirectErrorStream(true).start().waitFor() == 0
     }.getOrDefault(false)
 
     private suspend fun waitNet(ctx: Context): Boolean {
