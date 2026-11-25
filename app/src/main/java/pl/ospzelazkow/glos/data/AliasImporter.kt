@@ -7,11 +7,12 @@ object AliasImporter {
     private val EMAIL = Regex("^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$", RegexOption.IGNORE_CASE)
 
     suspend fun fromAssets(ctx: Context, repo: OspRepository, asset: String = "aliases.txt"): Int =
-        ctx.assets.open(asset).bufferedReader().use { repo.import(parse(it.readLines())) }
+        ctx.assets.open(asset).bufferedReader().use { repo.import(parse(it.readLines())).size }
 
-    suspend fun fromUri(ctx: Context, repo: OspRepository, uri: Uri): Int =
-        (ctx.contentResolver.openInputStream(uri) ?: return 0)
-            .bufferedReader().use { repo.import(parse(it.readLines())) }
+    suspend fun fromUri(ctx: Context, repo: OspRepository, uri: Uri): Int {
+        val input = ctx.contentResolver.openInputStream(uri) ?: return 0
+        return input.bufferedReader().use { repo.import(parse(it.readLines())).size }
+    }
 
     private fun parse(lines: List<String>): List<AliasEntity> {
         val seen = HashSet<String>()
