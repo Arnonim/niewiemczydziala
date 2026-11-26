@@ -43,9 +43,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pl.ospzelazkow.glos.a11y.RunState
+import pl.ospzelazkow.glos.data.AliasImporter
 import pl.ospzelazkow.glos.data.Prefs
 import pl.ospzelazkow.glos.data.Settings
 import pl.ospzelazkow.glos.svc.MailChecker
@@ -55,6 +58,16 @@ import pl.ospzelazkow.glos.util.FileLog
 class MainActivity : ComponentActivity() {
 
     private val notifPerm = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    private val pickTxt = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            importMsg = "Import…"
+            val n = runCatching { AliasImporter.fromUri(applicationContext, OspApp.instance.repo, uri) }
+                .getOrDefault(-1)
+            importMsg = if (n >= 0) "Zaimportowano: $n" else "Błąd importu"
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,9 +94,15 @@ class MainActivity : ComponentActivity() {
         val voted by repo.voted.collectAsState(initial = 0)
         val failed by repo.failed.collectAsState(initial = 0)
         val rate by repo.rate.collectAsState(initial = 0)
+        val total by repo.total.collectAsState(initial = 0)
 
         LaunchedEffect(Unit) {
             s = Prefs.read(ctx)
+            if (repo.total.first() == 0) {
+                importMsg = "Ładowanie wbudowanej listy…"
+                val n = runCatching { AliasImporter.fromAssets(ctx, repo) }.getOrDefault(0)
+                importMsg = "Wbudowana lista: $n"
+            }
             while (true) {
                 running = RunState.running
                 delay(500)
@@ -98,8 +117,30 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("OSP Głosowanie v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge)
-            Text("Pozostało: $remaining   Potwierdzone: $voted   Błędy: $failed   Limit IP: $rate")
+            Text("Aliasy: $total   Pozostało: $remaining   Potwierdzone: $voted   Błędy: $failed   Limit IP: $rate")
             Text(if (RunState.a11yConnected) "Dostępność: podłączona" else "Dostępność: BRAK")
+            if (importMsg.isNotEmpty()) Text(importMsg, style = MaterialTheme.typography.bodySmall)
+
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Lista adresów", style = MaterialTheme.typography.titleMedium)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { pickTxt.launch(arrayOf("text/plain", "*/*")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Import z pliku") }
+                        OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    runCatching { repo.resetAll() }
+                                    importMsg = "Baza wyczyszczona"
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Wyczyść bazę") }
+                    }
+                }
+            }
 
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -192,7 +233,7 @@ class MainActivity : ComponentActivity() {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = { VoteService.start(ctx) },
-                    enabled = !running,
+                    enabled = !running && remaining > 0,
                     modifier = Modifier.weight(1f)
                 ) { Text("START") }
                 OutlinedButton(
@@ -213,8 +254,7 @@ class MainActivity : ComponentActivity() {
                         val pm = getSystemService(PowerManager::class.java)
                         if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
                             startActivity(
-                                Intent(ASettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                                    .setData(Uri.parse("package:$packageName"))
+                                Intent(ASettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                             )
                         }
                     }
@@ -240,4 +280,6 @@ class MainActivity : ComponentActivity() {
             Spacer(Modifier.height(24.dp))
         }
     }
+
+    private var importMsg by mutableStateOf("")
 }
