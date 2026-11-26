@@ -105,6 +105,10 @@ class VoteService : LifecycleService() {
             if (id.length >= 8) "https://osp-harnas.pl/?osp_wipe=1&osp_next=$id"
             else "https://osp-harnas.pl/?osp_wipe=1"
         ))
+        delay(1500)
+        VoteBus.cmds.emit(Cmd.SetEmail(a.email, (a.id % 1000).toInt()))
+        delay(1500)
+        VoteBus.cmds.emit(Cmd.SetEmail(a.email, (a.id % 1000).toInt()))
         return awaitOutcome(a)
     }
 
