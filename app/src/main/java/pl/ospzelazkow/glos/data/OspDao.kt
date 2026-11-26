@@ -23,6 +23,9 @@ interface OspDao {
     @Query("UPDATE alias SET status = 0, attempts = 0, lastNote = NULL WHERE status IN (3, 6)")
     suspend fun requeueFailed()
 
+    @Query("UPDATE alias SET status = 0, lastNote = NULL WHERE status = 1")
+    suspend fun requeueStuck()
+
     @Query("UPDATE alias SET status = 0, attempts = 0, confirmTries = 0, lastNote = NULL")
     suspend fun resetAll()
 
