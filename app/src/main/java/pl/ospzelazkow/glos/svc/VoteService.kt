@@ -9,7 +9,6 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import pl.ospzelazkow.glos.OspApp
-import pl.ospzelazkow.glos.R
 import pl.ospzelazkow.glos.a11y.RunState
 import pl.ospzelazkow.glos.data.*
 import pl.ospzelazkow.glos.util.FileLog
@@ -46,6 +45,8 @@ class VoteService : LifecycleService() {
         job = lifecycleScope.launch {
             try {
                 loop()
+            } catch (c: CancellationException) {
+                FileLog.w("SVC stop")
             } catch (t: Throwable) {
                 FileLog.w("SVC crash: ${t.message}")
                 notify("Błąd: ${t.message ?: t::class.java.simpleName}")
