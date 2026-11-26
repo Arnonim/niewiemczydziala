@@ -1,14 +1,39 @@
 package pl.ospzelazkow.glos.web
 
 import android.webkit.JavascriptInterface
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import pl.ospzelazkow.glos.util.FileLog
 
-class JsBridge(private val scope: CoroutineScope) {
-    @JavascriptInterface fun onFlag(t: String?) {
-        if (!t.isNullOrBlank()) scope.launch { VoteBus.evts.emit(Evt.Flag(t)) }
+class JsBridge(
+    private val emailProvider: () -> String,
+    private val flagCb: (String) -> Unit,
+    private val doneCb: (String) -> Unit,
+    private val quizCb: (String) -> Unit
+) {
+
+    @JavascriptInterface
+    fun onFlag(f: String) {
+        FileLog.i("JS", "flag=$f")
+        flagCb(f)
     }
-    @JavascriptInterface fun onDone(p: String?) = scope.launch { VoteBus.evts.emit(Evt.Done(p ?: "vote")) }
-    @JavascriptInterface fun onQuiz(q: String?, a: String?, s: Boolean) =
-        scope.launch { VoteBus.evts.emit(Evt.Quiz(q ?: "", a ?: "", s)) }
+
+    @JavascriptInterface
+    fun onDone(r: String) {
+        FileLog.i("JS", "done=$r")
+        doneCb(r)
+    }
+
+    @JavascriptInterface
+    fun onQuiz(q: String) {
+        FileLog.i("JS", "quiz=$q")
+        quizCb(q)
+    }
+
+    @JavascriptInterface
+    fun email(): String = emailProvider()
+
+    @JavascriptInterface
+    fun apk(): Boolean = true
+
+    @JavascriptInterface
+    fun index(): Int = 0
 }
