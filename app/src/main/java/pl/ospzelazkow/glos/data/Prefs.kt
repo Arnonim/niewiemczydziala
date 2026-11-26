@@ -12,7 +12,7 @@ data class Settings(
     val batchLimit: Int = 150,
     val delayMinSec: Int = 25,
     val delayMaxSec: Int = 45,
-    val rotateEvery: Int = 15,
+    val rotateEvery: Int = 1,
     val uaSpoof: Boolean = true,
     val mailEnabled: Boolean = false,
     val mailHost: String = "s77.cyber-folks.pl",
