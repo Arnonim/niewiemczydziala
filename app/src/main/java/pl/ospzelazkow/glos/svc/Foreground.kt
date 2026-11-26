@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import pl.ospzelazkow.glos.BuildConfig
 import pl.ospzelazkow.glos.OspApp
 import pl.ospzelazkow.glos.R
 import pl.ospzelazkow.glos.web.VoteActivity
@@ -19,7 +20,7 @@ object Foreground {
         )
         return NotificationCompat.Builder(ctx, OspApp.CH_RUN)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle(ctx.getString(R.string.svc_title))
+            .setContentTitle(ctx.getString(R.string.svc_title) + " v" + BuildConfig.VERSION_NAME)
             .setContentText(text)
             .setSubText(sub.ifEmpty { null })
             .setOngoing(true).setOnlyAlertOnce(true)
