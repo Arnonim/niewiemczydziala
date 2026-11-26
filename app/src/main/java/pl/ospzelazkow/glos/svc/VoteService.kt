@@ -68,7 +68,7 @@ class VoteService : LifecycleService() {
     private suspend fun loop() {
         prefs = Prefs.read(this)
         budget = if (prefs.batchLimit > 0) prefs.batchLimit else 150
-        FileLog.w("SVC loop budget=$budget rotateEvery=${prefs.rotateEvery} mail=${prefs.mailEnabled}")
+        FileLog.w("SVC loop budget=$budget rotateEvery=${prefs.rotateEvery} mail=${prefs.mailEnabled} a11y=${RunState.a11yConnected}")
         val cfg = MailChecker.Cfg(prefs.mailHost, prefs.mailPort, prefs.mailUser, prefs.mailPass)
         val mail = prefs.mailEnabled && prefs.mailHost.isNotBlank()
 
@@ -90,7 +90,17 @@ class VoteService : LifecycleService() {
             }
 
             FileLog.w("SVC alias ${alias.email} id=${alias.id}")
-            val out = runOne(alias)
+            var out = runOne(alias)
+
+            if (out == Outcome.RATE) {
+                FileLog.w("SVC 429 — rotacja IP i ponowna próba")
+                tick("Limit IP — rotacja")
+                val ok = IpRotator.rotate(this)
+                FileLog.w("SVC rotacja=$ok")
+                delay(3000)
+                if (running) out = runOne(alias)
+            }
+
             FileLog.w("SVC wynik ${alias.email} = $out")
             handle(alias, out)
 
@@ -139,7 +149,7 @@ class VoteService : LifecycleService() {
 
     private suspend fun awaitOutcome(a: AliasEntity): Outcome {
         var ses = 0; var brak = 0
-        val deadline = System.currentTimeMillis() + 100_000
+        val deadline = System.currentTimeMillis() + 120_000
         while (System.currentTimeMillis() < deadline && running) {
             val e = withTimeoutOrNull(3000) { nextEvent() } ?: continue
             when (e) {
@@ -153,13 +163,14 @@ class VoteService : LifecycleService() {
                     e.title == "OSP-MARTWY" -> return Outcome.DEAD
                     e.title == "OSP-BRAK-MAILI" -> return Outcome.SKIPPED
                     e.title.startsWith("OSP-SESIA") -> {
-                        if (ses++ >= 1) return Outcome.FAILED
+                        if (ses++ >= 2) return Outcome.FAILED
+                        delay(1200)
                         VoteBus.cmds.emit(Cmd.Submit)
                     }
                     e.title == "OSP-CZEKA-VOTE-BRAK" -> {
-                        if (brak++ >= 2) return Outcome.FAILED
-                        delay(1500)
-                        VoteBus.cmds.emit(Cmd.Submit)
+                        brak++
+                        if (brak % 12 == 0) VoteBus.cmds.emit(Cmd.Submit)
+                        delay(700)
                     }
                     e.title.startsWith("OSP-CZEKA-") -> {
                         val t = e.title.removePrefix("OSP-CZEKA-")
@@ -171,6 +182,7 @@ class VoteService : LifecycleService() {
                 }
             }
         }
+        FileLog.w("SVC timeout ${a.email} brak=$brak ses=$ses")
         return Outcome.FAILED
     }
 
