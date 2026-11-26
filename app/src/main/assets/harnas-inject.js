@@ -7,8 +7,7 @@
   function done(p) { try { OspAndroid.onDone(p); } catch (e) {} }
   function quiz(q, a, s) { try { OspAndroid.onQuiz(q, a, s); } catch (e) {} }
   function txt() { return (document.body && document.body.innerText || '').toLowerCase(); }
-
-  var email = window.__OSP_FORCE_EMAIL || '';
+  function curEmail() { return window.__OSP_FORCE_EMAIL || ''; }
 
   var qs = location.search;
   if (/osp_wipe=1/.test(qs)) {
@@ -118,7 +117,12 @@
     var el = document.querySelector(sel);
     if (!el) return 'noel';
     var opt = findOpt(sel, val, label);
-    if (!opt) return 'wait';
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = label;
+      el.appendChild(opt);
+    }
     if (el.value === opt.value) return 'ok';
     el.value = opt.value;
     el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -163,7 +167,8 @@
     var form = document.getElementById('vote-form');
     if (form && document.getElementById('vote_email')) {
       flag('OSP-CZEKA-VOTE');
-      if (email) setVal(document.getElementById('vote_email'), email);
+      var em = curEmail();
+      if (em) setVal(document.getElementById('vote_email'), em);
 
       if (setSel('#vote_voivodeship', '4', 'wielkopolskie') !== 'ok') return;
       if (setSel('#vote_district', '1971', 'Żelazków') !== 'ok') return;
