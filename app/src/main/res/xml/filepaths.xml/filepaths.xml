@@ -1,7 +1,6 @@
-
 <?xml version="1.0" encoding="utf-8"?>
-<paths>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="logs" path="logs/" />
     <cache-path name="cache" path="." />
-    <external-files-path name="extlogs" path="logs/" />
+    <external-files-path name="ext" path="." />
 </paths>
