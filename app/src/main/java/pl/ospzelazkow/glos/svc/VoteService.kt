@@ -146,7 +146,7 @@ class VoteService : LifecycleService() {
     }
 
     private suspend fun nextEvent(): Evt = suspendCancellableCoroutine { c ->
-        val j = lifecycleScope.launch { VoteBus.evts.collect { if (c.isActive) c.resume(it) } }
+        val j = lifecycleScope.launch { VoteBus.evts.collect { if (c.isActive) c.resume(it, null) } }
         c.invokeOnCancellation { j.cancel() }
     }
 
