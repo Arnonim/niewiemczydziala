@@ -13,8 +13,8 @@ android {
         applicationId = "pl.ospzelazkow.glos"
         minSdk = 26
         targetSdk = 34
-        versionCode = 18
-        versionName = "2.4-kontakt10"
+        versionCode = 19
+        versionName = "2.4-kontakt9"
         vectorDrawables { useSupportLibrary = true }
     }
 
