@@ -25,6 +25,7 @@ class OspRepository(private val dao: OspDao) {
     suspend fun confirmed(id: Long) = dao.mark(id, AliasStatus.CONFIRMED)
     suspend fun bumpConfirm(id: Long) = dao.bumpConfirm(id)
     suspend fun requeueFailed() = dao.requeueFailed()
+    suspend fun requeueStuck() = dao.requeueStuck()
     suspend fun resetAll() = dao.resetAll()
     suspend fun import(rows: List<AliasEntity>) = dao.insertAll(rows)
     suspend fun log(e: String, p: String, r: String, n: String? = null) =
