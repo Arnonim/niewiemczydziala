@@ -12,6 +12,7 @@ import pl.ospzelazkow.glos.OspApp
 import pl.ospzelazkow.glos.R
 import pl.ospzelazkow.glos.a11y.RunState
 import pl.ospzelazkow.glos.data.*
+import pl.ospzelazkow.glos.util.FileLog
 import pl.ospzelazkow.glos.web.*
 import kotlin.random.Random
 
@@ -41,7 +42,17 @@ class VoteService : LifecycleService() {
         running = true
         RunState.running = true
         startForeground(Foreground.nextId(), Foreground.build(this, "Przygotowanie…"))
-        job = lifecycleScope.launch { loop() }
+        FileLog.w("SVC start")
+        job = lifecycleScope.launch {
+            try {
+                loop()
+            } catch (t: Throwable) {
+                FileLog.w("SVC crash: ${t.message}")
+                notify("Błąd: ${t.message ?: t::class.java.simpleName}")
+            } finally {
+                stopRun()
+            }
+        }
     }
 
     private fun stopRun() {
@@ -55,19 +66,31 @@ class VoteService : LifecycleService() {
 
     private suspend fun loop() {
         prefs = Prefs.read(this)
-        budget = prefs.batchLimit
+        budget = if (prefs.batchLimit > 0) prefs.batchLimit else 150
+        FileLog.w("SVC loop budget=$budget rotateEvery=${prefs.rotateEvery} mail=${prefs.mailEnabled}")
         val cfg = MailChecker.Cfg(prefs.mailHost, prefs.mailPort, prefs.mailUser, prefs.mailPass)
         val mail = prefs.mailEnabled && prefs.mailHost.isNotBlank()
 
         startActivity(Intent(this, VoteActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        delay(1200)
+        delay(1500)
 
         while (running && done < budget) {
             if (mail) sweep(cfg)
-            val alias = repo.claimNext()
-            if (alias == null) { notify("Skończyły się aliasy"); break }
+            var alias = repo.claimNext()
+            if (alias == null) {
+                FileLog.w("SVC brak NEW/RATE — reset IN_PROGRESS")
+                repo.requeueStuck()
+                alias = repo.claimNext()
+            }
+            if (alias == null) {
+                notify("Brak adresów do głosowania")
+                FileLog.w("SVC brak aliasów — koniec")
+                break
+            }
 
+            FileLog.w("SVC alias ${alias.email} id=${alias.id}")
             val out = runOne(alias)
+            FileLog.w("SVC wynik ${alias.email} = $out")
             handle(alias, out)
 
             if (out == Outcome.VOTED && mail) {
@@ -90,7 +113,8 @@ class VoteService : LifecycleService() {
             }
             delay(Random.nextLong(prefs.delayMinSec * 1000L, prefs.delayMaxSec * 1000L + 1))
         }
-        stopRun()
+        tick("Koniec", "$done/$budget")
+        FileLog.w("SVC koniec $done/$budget")
     }
 
     private enum class Outcome { VOTED, RATE, DEAD, SKIPPED, FAILED }
@@ -101,10 +125,10 @@ class VoteService : LifecycleService() {
         VoteBus.cmds.emit(Cmd.WipeCookies)
         delay(250)
         val id = prefs.voteId
-        VoteBus.cmds.emit(Cmd.Load(
-            if (id.length >= 8) "https://osp-harnas.pl/?osp_wipe=1&osp_next=$id"
-            else "https://osp-harnas.pl/?osp_wipe=1"
-        ))
+        val url = if (id.length >= 8) "https://osp-harnas.pl/?osp_wipe=1&osp_next=$id"
+        else "https://osp-harnas.pl/?osp_wipe=1"
+        FileLog.w("SVC load $url")
+        VoteBus.cmds.emit(Cmd.Load(url))
         delay(1500)
         VoteBus.cmds.emit(Cmd.SetEmail(a.email, (a.id % 1000).toInt()))
         delay(1500)
