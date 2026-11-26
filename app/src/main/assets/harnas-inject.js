@@ -3,7 +3,6 @@
   if (window.__ospInit) return;
   window.__ospInit = true;
 
-  var T = 0;
   function flag(t) { try { document.title = t; } catch (e) {} try { OspAndroid.onFlag(t); } catch (e) {} }
   function done(p) { try { OspAndroid.onDone(p); } catch (e) {} }
   function quiz(q, a, s) { try { OspAndroid.onQuiz(q, a, s); } catch (e) {} }
@@ -11,14 +10,12 @@
 
   var email = window.__OSP_FORCE_EMAIL || '';
 
-  // ---- wipe / redirect ----
   var qs = location.search;
   if (/osp_wipe=1/.test(qs)) {
     var nx = (qs.match(/osp_next=([a-f0-9]{8})/) || [])[1];
     if (nx) { location.replace('https://osp-harnas.pl/zaglosuj-na-wybrane-osp/' + nx); return; }
   }
 
-  // ---- solver ----
   var W = {
     'zero':0,'jeden':1,'dwa':2,'trzy':3,'cztery':4,'pięć':5,'piec':5,'sześć':6,'szesc':6,
     'siedem':7,'osiem':8,'dziewięć':9,'dziewiec':9,'dziesięć':10,'dziesiec':10,
@@ -37,8 +34,7 @@
     if (!q) return null;
     var t = q.toLowerCase().trim().replace(/&quot;/g,'"').replace(/[„”"']/g,'').replace(/[?!.,]/g,'')
              .replace(/podzielone przez|dzielone przez/g,'/');
-
-    if (t.indexOf('ćwiartek') > -1 || t.indexOf('cwiartek') > -1) return '4';
+    if (/ćwiartek|cwiartek/.test(t)) return '4';
     if (/milion/.test(t) && /miliard/.test(t)) return '1000';
     if (/tuzin/.test(t) && /24/.test(t)) return '2';
     if (/zer ma liczba sto/.test(t)) return '2';
@@ -63,13 +59,10 @@
     if (/centymetr/.test(t) && /metr/.test(t)) return '100';
     if (/połówek|polowek|połowek/.test(t)) return '2';
     if (/luty/.test(t) && /nieprzestępn|nieprzestepn/.test(t)) return '28';
-
     var sq = t.match(/kwadrat liczby\s*([a-ząćęłńóśźż0-9]+)/);
     if (sq) { var s1 = num(sq[1]); if (s1 !== null) return String(s1 * s1); }
-
     var lw = t.match(/ile liter ma s[łl]owo\s*([a-ząćęłńóśźż]+)/);
     if (lw) return String(lw[1].trim().length);
-
     var e = t.replace(/^ile (to jest|wynosi):?\s*/, '');
     var p = e.match(/[a-ząćęłńóśźż0-9]+|plus|\+|minus|-|razy|\*|\/|przez/g);
     if (p) {
@@ -99,7 +92,11 @@
     return null;
   }
 
-  // ---- helpers ----
+  function norm(s) {
+    var m = {'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'};
+    return (s || '').toLowerCase().replace(/[ąćęłńóśźż]/g, function (c) { return m[c]; }).trim();
+  }
+
   function setVal(el, v) {
     if (!el || el.value === v) return;
     el.value = v;
@@ -107,13 +104,25 @@
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function pick(sel, val) {
+  function findOpt(sel, val, label) {
     var el = document.querySelector(sel);
-    if (!el) return;
-    if (!el.querySelector('option[value="' + val + '"]')) return false;
-    el.value = val;
+    if (!el) return null;
+    var byVal = el.querySelector('option[value="' + val + '"]');
+    if (byVal) return byVal;
+    var opts = el.querySelectorAll('option');
+    for (var i = 0; i < opts.length; i++) if (norm(opts[i].textContent) === norm(label)) return opts[i];
+    return null;
+  }
+
+  function setSel(sel, val, label) {
+    var el = document.querySelector(sel);
+    if (!el) return 'noel';
+    var opt = findOpt(sel, val, label);
+    if (!opt) return 'wait';
+    if (el.value === opt.value) return 'ok';
+    el.value = opt.value;
     el.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+    return 'set';
   }
 
   function switchOn(el) {
@@ -128,7 +137,7 @@
     return '';
   }
 
-  function submit(form, btn) {
+  function submit(form) {
     if (!form || window.__ospLock) return;
     window.__ospLock = true;
     var h = form.querySelector('input[name="website"]');
@@ -137,14 +146,12 @@
     catch (e) { window.__ospLock = false; form.submit(); }
   }
 
-  // ---- main ----
   var vid = (location.pathname.match(/\/zaglosuj-na-wybrane-osp\/([a-f0-9]{8})/) || [])[1];
   if (vid) { try { localStorage.setItem('last_vote_id', vid); } catch (e) {} }
 
-  var votes = 0;
+  var ticks = 0;
   var timer = setInterval(function () {
-    votes++;
-    if (votes > 900) { clearInterval(timer); return; }
+    if (++ticks > 900) { clearInterval(timer); return; }
 
     var body = txt();
     if (/429|too many requests|za dużo/i.test(body)) { flag('OSP-429'); return; }
@@ -153,22 +160,23 @@
       flag(location.pathname.indexOf('confirm') > -1 ? 'OSP-SESIA' : 'OSP-SESIA-VOTE'); return;
     }
 
-    // formularz główny
     var form = document.getElementById('vote-form');
     if (form && document.getElementById('vote_email')) {
       flag('OSP-CZEKA-VOTE');
       if (email) setVal(document.getElementById('vote_email'), email);
-      if (!pick('#vote_voivodeship', '4')) return;
-      if (!pick('#vote_district', '1971')) return;
-      if (!pick('#vote_city', '13879')) return;
+
+      if (setSel('#vote_voivodeship', '4', 'wielkopolskie') !== 'ok') return;
+      if (setSel('#vote_district', '1971', 'Żelazków') !== 'ok') return;
+      if (setSel('#vote_city', '13879', 'Żelazków') !== 'ok') return;
+
       switchOn(document.getElementById('vote_agreement_1'));
       switchOn(document.getElementById('vote_agreement_2'));
+
       if (token()) { flag('OSP-OK-VOTE'); submit(form); done('vote'); }
       else flag('OSP-CZEKA-VOTE-BRAK');
       return;
     }
 
-    // strona potwierdzenia
     var cf = document.querySelector('.c-vote-confirm__form');
     if (cf) {
       flag(vid ? 'OSP-CZEKA-' + vid : 'OSP-CZEKA');
@@ -184,6 +192,4 @@
 
     if (vid) flag('OSP-CZEKA-' + vid);
   }, 700);
-
-  setTimeout(function () { if (email) setVal(document.getElementById('vote_email'), email); }, 400);
 })();
