@@ -12,8 +12,8 @@ android {
         applicationId = "pl.ospzelazkow.glos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
-        versionName = "2.0-kontakt7"
+        versionCode = 16
+        versionName = "2.1-kontakt9"
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions {
