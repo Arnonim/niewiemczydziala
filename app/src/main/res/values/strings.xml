@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OSP Ĺ»elazkĂłw</string>
-    <string name="svc_title">GĹ‚osowanie w toku</string>
-    <string name="a11y_label">OSP â€” klik w Cloudflare</string>
+    <string name="app_name">OSP Żelazków</string>
+    <string name="svc_title">Głosowanie w toku</string>
+    <string name="a11y_label">OSP — klik w Cloudflare</string>
     <string name="a11y_desc">Klika checkbox Cloudflare Turnstile za Ciebie.</string>
 </resources>
