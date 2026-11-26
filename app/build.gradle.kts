@@ -21,6 +21,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    packaging {
+        resources.excludes += setOf(
+            "META-INF/NOTICE.md",
+            "META-INF/LICENSE.md",
+            "META-INF/NOTICE",
+            "META-INF/LICENSE",
+            "META-INF/DEPENDENCIES"
+        )
+    }
 }
 
 dependencies {
