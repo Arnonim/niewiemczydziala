@@ -175,7 +175,7 @@ class MainActivity : ComponentActivity() {
                         )
                         OutlinedTextField(
                             value = s.rotateEvery.toString(),
-                            onValueChange = { v -> val n = v.toIntOrNull() ?: 15; s = s.copy(rotateEvery = n); scope.launch { Prefs.setRotate(ctx, n) } },
+                            onValueChange = { v -> val n = v.toIntOrNull() ?: 1; s = s.copy(rotateEvery = n); scope.launch { Prefs.setRotate(ctx, n) } },
                             label = { Text("Co ile IP") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
